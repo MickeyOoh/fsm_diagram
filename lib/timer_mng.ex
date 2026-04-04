@@ -1,32 +1,37 @@
-defmodule Timer do
-  
+defmodule TimerMng do
+  use Task
+
   #defstruct [:mod, :reply_eve, :curtimer, :orgtimer]
+  @default_tick 10
 
-  def start_link(tick \\ 100) do
-    pid = spawn(__MODULE__, :tim_manager, [tick - 1, []])
-    :global.register_name(__MODULE__, pid)
-    pid
+  def start_link(tick \\ @default_tick) do
+    Task.start_link(fn -> init(tick) end)
   end
 
-  def tim_manager(tick, lists) do
-    countdown(tick, lists)
+  defp init(tick) do
+    :global.register_name(__MODULE__, self())
+    #MemPool.cre_mpf(__MODULE__, [])
+    countdown(tick, [])
   end
 
-  def countdown(tick, []) do
+  defp countdown(tick, []) do
     lists = 
       receive do
-        {eve, mod, timer, reply_eve} -> set_cb([], mod, eve, timer, reply_eve)
+        {eve, mod, timer, reply_eve} -> 
+                  set_cb([], mod, eve, timer, reply_eve)
         _  -> [] 
       end
     countdown(tick, lists)
   end
-  def countdown(tick, lists) do
+  defp countdown(tick, lists) do
     lists =
       receive do
-          {eve, mod, timer, reply_eve} -> set_cb(lists, mod, eve, timer, reply_eve)
-          _  -> lists
-          after tick -> 
-              do_count(lists)
+        {eve, mod, timer, reply_eve} ->
+                    set_cb(lists, mod, eve, timer, reply_eve)
+        dat -> IO.puts("TimerMng: received #{inspect dat}") 
+                lists
+
+        after tick -> do_count(lists)
       end
     countdown(tick, lists)
   end
@@ -44,8 +49,10 @@ defmodule Timer do
       end)
   end
 
+  def notify(mod, eve, msg) when is_pid(mod) do
+    send(mod, {eve, msg})
+  end
   def notify(mod, eve, msg) do
-    #IO.puts("notify of #{mod} #{eve} #{msg}")
     pid = :global.whereis_name(mod)
     send(pid, {eve, msg})
   end
@@ -54,16 +61,6 @@ defmodule Timer do
     pid = :global.whereis_name(__MODULE__)
     send(pid, {eve, mod, timer, reply_eve})
   end
-
-    ##def get_timcb() do
-    ##  rec = :ets.lookup(:fsm_cb, __MODULE__)
-    ##  case rec do
-    ##    [cb] -> 
-    ##      #IO.puts("#{inspect cb}")
-    ##      cb
-    ##    [] -> :error
-    ##  end
-    ##end
   
   def set_cb(lists, mod, eve, timer, reply_eve) do
     case eve do
@@ -83,7 +80,7 @@ defmodule Timer do
       end)
     else
       # 追加
-      lists ++ [new_item]
+      [new_item] ++ lists
     end
   end
       
@@ -92,5 +89,16 @@ defmodule Timer do
         [^mod, ^reply_eve, _, _] -> true
         _ -> false
     end)
+  end
+
+  def get_tick() do
+    @default_tick
+  end
+
+  def get_systime() do
+    System.os_time(:millisecond)
+  end
+  def timestamp(sta_time) do
+    System.os_time(:millisecond) - sta_time
   end
 end

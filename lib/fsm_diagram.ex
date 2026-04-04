@@ -2,7 +2,9 @@ defmodule FsmDiagram do
   @moduledoc """
   Documentation for `FsmDiagram`.
   """
-
+  
+  @type event() :: atom()
+  
   @doc """
   Hello world.
 

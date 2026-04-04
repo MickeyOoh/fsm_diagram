@@ -1,73 +1,79 @@
-defmodule Fsm_manager do
+defmodule FsmDiagram.Manager do
+  use Task
+  require Logger
 
-  defstruct [:mod, :func, :arg, :statime]
+  alias MemPool, as: Mem
+  alias TimerMng, as: Timer
 
-  @tick 10
+  #defstruct [:mod, :func, :arg, :time]
   
-  def start() do
-    #:ets.new(:fsm_cb, [:named_table, :public, :set])
-    Timer.start_link(@tick)
+  @type event() :: atom()
+
+  @spec start_link(module(), fun(), list()) :: {:ok, pid()}
+  def start_link(mod, func, argv\\ []) do
+    Task.start_link(fn -> init(mod, func, argv) end)
+  end
+  defp init(mod, func, argv) do
+    time = Timer.get_systime()
+    :global.register_name(mod, self()) 
+    record = {mod, func, argv, time}
+    Mem.cre_mpf(record)
+    dispatch(mod)
   end
 
-  def start_link(mod, func, arg \\ 0) do
-    statime = System.os_time(:millisecond)
-    cb = %Fsm_manager{mod: mod, func: func, arg: arg, statime: statime}
-    IO.puts("start_link #{inspect cb}")
-    pid = spawn(__MODULE__, :dispatch, [cb])
-    :global.register_name(mod, pid) 
-    #:ets.insert_new(:fsm_cb, {mod, cb})
-    pid
-  end
-  
-  def dispatch(cb) do
-    cb = apply(cb.mod, cb.func, [cb])
-    dispatch(cb)
+  # def close(mod) do
+  #  Mem.delete(mod) 
+  #end
+
+  @spec dispatch(module()) :: none() 
+  def dispatch(mod) do
+    {_mod, func, argv, _time} = Mem.get_mpf(mod)
+    apply(mod, func, [argv])
+    dispatch(mod)
   end
 
+  @spec rcv_msg(none() | integer()) :: {event(), any()} | {:illegal, any()} 
   def rcv_msg() do
     receive do
-      {eve, arg} ->
-        {eve,arg}
-      _ ->
-        IO.puts("receive the other")
-        {:end, "stop"}
+      {eve, arg} -> {eve,arg}
+      #:shutdown -> close()
+      _ -> {:illegal, "illegal"}
     end
   end
-
-  def trcv_msg(timeout) do
+  def rcv_msg(timeout) do
     receive do
-      {eve, arg} ->
-        {eve,arg}
-      _ ->
-        IO.puts("receive the other")
-        {:end, "stop"}
+      {eve, arg} -> {eve,arg}
+      #:shutdown -> close()
+      _ -> {:illegal, "illegal"}
       after timeout -> {:timeout, 0}
     end
   end
 
+  @spec notifyevent(module(), event(), any()) :: any()
   def notifyevent(mod, eve, msg) do
     pid = :global.whereis_name(mod)
     send(pid, {eve, msg})
   end
 
-  def get_tick() do
-      @tick
+  @spec update_fsm(module(), fun(), list()) :: any()
+  def update_fsm(mod, func, argv) do
+    {^mod, prefunc, preargv, time} = Mem.get_mpf(mod)
+    prefstr = Atom.to_string(prefunc)
+    fstr    = Atom.to_string(func)
+    Logger.debug("Move #{mod}: #{prefstr}(#{preargv}) -> #{fstr}(#{argv})")
+    Mem.put_mpf(mod, {mod, func, argv, time})
   end
   
-  ##def get_sts(mod) do
-  ##  rec = :ets.lookup(:fsm_cb, mod)
-  ##  case rec do
-  ##    [{_mod, cb}] -> 
-  ##            IO.puts("#{inspect cb}")
-  ##            cb 
-  ##    [] -> :error
-  ##  end
-  ##end
-  ##
-  ##def set_sts(mod, cb) do
-  ##  :ets.insert(:fsm_cb, { mod, cb})
-  ##  #{mod, func, step}
-  ##  cb
-  ##end
+  @spec update_arg(module(), list()) :: any()
+  def update_arg(mod, argv) do
+    {_mod, func, _argv, time} = Mem.get_mpf(mod)
+    Mem.put_mpf(mod, {mod, func, argv, time})
+  end
+  
+  @spec get_arg(module()) :: list()
+  def get_arg(mod) do
+    {_mod, _func, argv, _time} = Mem.get_mpf(mod)
+    argv
+  end
 
 end
