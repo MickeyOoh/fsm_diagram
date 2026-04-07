@@ -19,7 +19,7 @@ defmodule MemPool do
   defp manager() do
     receive do
       {:get, from, key} -> get_reply(from, key)
-      {:put, from, key, data} -> put_reply(from, key, data)
+      {:put, from, data} -> put_reply(from, data)
     end
     manager() 
   end
@@ -29,8 +29,9 @@ defmodule MemPool do
     data = {key, func, argv, time}
     send(from, {:get, data})
   end
-  defp put_reply(from, key, data) do
-    put_mpf(key, data)
+
+  defp put_reply(from, data) do
+    put_mpf(data)
     send(from, {:put, data})
   end
 
@@ -48,14 +49,17 @@ defmodule MemPool do
     :ets.insert_new(@tblname, data)
   end
   
-  @spec put_mpf(any(), Tuple) :: boolean() 
-  def put_mpf(_key, data) do
+  @spec put_mpf(Tuple) :: boolean() 
+  def put_mpf(data) do
     :ets.insert(@tblname,  data)
   end
   
-  @spec update_elm(key :: any(), block :: Tuple | List) :: boolean()
-  def update_elm(key, block) when is_list(block) do
+  @spec update_elm(key :: any(), block :: Tuple | List | Tuple) :: boolean()
+  def update_elm(key, block) do
     :ets.update_element(@tblname, key, block)
+  end
+  def get_elm(key, pos) do
+    :ets.lookup_element(@tblname, key, pos)
   end
 
   def get_mpf(key) do
@@ -70,6 +74,6 @@ defmodule MemPool do
     :ets.delete_object(@tblname, key)
   end
   
-  def get_tbname(), do: @tblname
+  def get_tblname(), do: @tblname
 
 end

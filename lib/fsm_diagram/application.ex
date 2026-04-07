@@ -7,8 +7,6 @@ defmodule FsmDiagram.Application do
 
   @impl true
   def start(_type, _args) do
-    #{:ok, _pid} = MemPool.start()
-    #{:ok, _pid} = Timer.start()
     children = [
       # Starts a worker by calling: FsmDiagram.Worker.start_link(arg)
       # {FsmDiagram.Worker, arg}

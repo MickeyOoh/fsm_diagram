@@ -1,16 +1,16 @@
 defmodule TimerMng do
   use Task
 
-  #defstruct [:mod, :reply_eve, :curtimer, :orgtimer]
+  defstruct [:mod, :reply_eve, :curtimer, :orgtimer]
   @default_tick 10
 
   def start_link(tick \\ @default_tick) do
-    Task.start_link(fn -> init(tick) end)
+    Task.start_link(fn -> init(tick - 1) end)
   end
 
   defp init(tick) do
     :global.register_name(__MODULE__, self())
-    #MemPool.cre_mpf(__MODULE__, [])
+    #MemPool.cre_mpf({__MODULE__, []})
     countdown(tick, [])
   end
 
@@ -50,11 +50,11 @@ defmodule TimerMng do
   end
 
   def notify(mod, eve, msg) when is_pid(mod) do
-    send(mod, {eve, msg})
+    send(mod, {eve, self(), msg})
   end
   def notify(mod, eve, msg) do
     pid = :global.whereis_name(mod)
-    send(pid, {eve, msg})
+    send(pid, {eve, self(), msg})
   end
 
   def set_timcb(eve, mod, timer, reply_eve) do

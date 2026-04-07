@@ -6,7 +6,7 @@ defmodule MemPoolTest do
     lists = :global.registered_names()
     assert MemPool in lists
     lists = :ets.all()
-    assert MemPool.get_tbname() in lists
+    assert MemPool.get_tblname() in lists
     on_exit(fn -> close() end)
   end
   defp close() do
