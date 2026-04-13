@@ -1,5 +1,10 @@
 defmodule MemPool do
+  @moduledoc """
+  :ets wrapper to manage variables with Module name 
+
+  """
   use Task
+  
 
   @tblname :mempool # table name for :ets
 
@@ -23,13 +28,15 @@ defmodule MemPool do
     end
     manager() 
   end
-  
+
+  @spec get_reply(pid(), any()) :: any()
   defp get_reply(from, key) do
     {_key, func, argv, time} = get_mpf(key)
     data = {key, func, argv, time}
     send(from, {:get, data})
   end
 
+  @spec put_reply(pid(), any()) :: any()
   defp put_reply(from, data) do
     put_mpf(data)
     send(from, {:put, data})
@@ -37,12 +44,7 @@ defmodule MemPool do
 
   # Public functions
   @doc """
-  
-  ## Tests
-
-    iex> MemPool.cre_mpf({Test1, :init, [1], 123})
-    true
-
+  create mem  
   """
   @spec cre_mpf(Tuple) :: boolean() 
   def cre_mpf(data) do
@@ -54,26 +56,35 @@ defmodule MemPool do
     :ets.insert(@tblname,  data)
   end
   
-  @spec update_elm(key :: any(), block :: Tuple | List | Tuple) :: boolean()
-  def update_elm(key, block) do
+  @spec put_mpfelm(any(), block :: Tuple | List) :: boolean()
+  def put_mpfelm(key, block) do
     :ets.update_element(@tblname, key, block)
   end
-  def get_elm(key, pos) do
+
+  @spec get_mpfelm(any(), integer()) :: tuple()
+  def get_mpfelm(key, pos) do
     :ets.lookup_element(@tblname, key, pos)
   end
 
+  @spec get_mpf(any()) :: tuple() | nil
   def get_mpf(key) do
     data = :ets.lookup(@tblname, key)
     case  data do
       [data] -> data
-      [] -> :error
+      [] -> nil
     end
   end
 
+  @spec get_mpfkeys() :: List
+  def get_mpfkeys() do
+    :ets.tab2list(@tblname)
+    |> Enum.map( fn tuple -> elem(tuple, 0) end)
+  end
+  
+  @spec delete(any()) :: any()
   def delete(key) do
     :ets.delete_object(@tblname, key)
   end
   
-  def get_tblname(), do: @tblname
 
 end

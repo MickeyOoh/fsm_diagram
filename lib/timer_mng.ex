@@ -1,81 +1,114 @@
 defmodule TimerMng do
   use Task
-
-  defstruct [:mod, :reply_eve, :curtimer, :orgtimer]
+  # mempool: {key, tick, []}
+  defstruct [:mod, :reteve, :curtimer, :orgtimer]
   @default_tick 10
 
+  @elmno_tick 2
+  @elmno_lists 3
+  
+  @spec start_link(integer()) :: {:ok, pid()}
   def start_link(tick \\ @default_tick) do
-    Task.start_link(fn -> init(tick - 1) end)
+    Task.start_link(fn -> init(tick) end)
   end
+
+  @spec get_key() :: tuple()
+  defp get_key(), do: {__MODULE__, :timer}
 
   defp init(tick) do
     :global.register_name(__MODULE__, self())
-    #MemPool.cre_mpf({__MODULE__, []})
+    MemPool.cre_mpf({get_key(), tick, []})
     countdown(tick, [])
+  end
+
+  # Public function
+  @spec set_timcb(atom(), module() | pid(), integer(), atom()) :: any()
+  def set_timcb(eve, mod, timer, reteve) do
+    pid = :global.whereis_name(__MODULE__)    # This TimerMng pid
+    send(pid, {eve, mod, timer, reteve})
+  end
+  
+  @spec get_tick() :: integer()
+  def get_tick() do
+    MemPool.get_mpfelm(get_key(), @elmno_tick)
+  end
+  
+  @spec get_systime() :: integer()
+  def get_systime() do
+    System.os_time(:millisecond)
+  end
+
+  @spec timestamp(integer()) :: integer()
+  def timestamp(sta_time) do
+    System.os_time(:millisecond) - sta_time
+  end
+  
+  @spec get_lists() :: list()
+  def get_lists() do
+    MemPool.get_mpfelm(get_key(), @elmno_lists)
   end
 
   defp countdown(tick, []) do
     lists = 
       receive do
-        {eve, mod, timer, reply_eve} -> 
-                  set_cb([], mod, eve, timer, reply_eve)
+        {eve, mod, timer, reteve} -> 
+                  set_cb([], mod, eve, timer, reteve)
         _  -> [] 
       end
+    put_lists(lists) 
     countdown(tick, lists)
   end
   defp countdown(tick, lists) do
     lists =
       receive do
-        {eve, mod, timer, reply_eve} ->
-                    set_cb(lists, mod, eve, timer, reply_eve)
+        {eve, mod, timer, reteve} ->
+                    set_cb(lists, mod, eve, timer, reteve)
         dat -> IO.puts("TimerMng: received #{inspect dat}") 
                 lists
 
-        after tick -> do_count(lists)
+        after tick - 1 -> do_count(lists)
       end
+    put_lists(lists) 
     countdown(tick, lists)
   end
 
-  def do_count(lists) do
+  defp do_count(lists) do
     Enum.map(lists, 
       fn 
-        [mod, reply_eve, 0, 0] -> [mod, reply_eve, 0, 0]
-        [mod, reply_eve, 1, 0] -> notify(mod, reply_eve, "timer") 
-                   [mod, reply_eve, 0, 0]
-        [mod, reply_eve, 1, cyc] -> notify(mod, reply_eve, "cyctimer") 
-                   [mod, reply_eve, cyc, cyc]
-        [mod, reply_eve, cnt, cyc] -> 
-                   [mod, reply_eve, cnt - 1, cyc]
-      end)
+        [mod, reteve, 0, 0]     -> [mod, reteve, 0, 0]
+        [mod, reteve, 1, 0]     -> notify(mod, reteve, "oneshot") 
+                                   [mod, reteve, 0, 0]
+        [mod, reteve, 1, cyc]   -> notify(mod, reteve, "cyclic") 
+                                   [mod, reteve, cyc, cyc]
+        [mod, reteve, cnt, cyc] -> [mod, reteve, cnt - 1, cyc]
+    end)
+    #|> IO.inspect()
   end
 
-  def notify(mod, eve, msg) when is_pid(mod) do
+  @spec notify(module() | pid(), atom(), any()) :: any()
+  defp notify(mod, eve, msg) when is_pid(mod) do
     send(mod, {eve, self(), msg})
   end
-  def notify(mod, eve, msg) do
+  defp notify(mod, eve, msg) do
     pid = :global.whereis_name(mod)
     send(pid, {eve, self(), msg})
   end
 
-  def set_timcb(eve, mod, timer, reply_eve) do
-    pid = :global.whereis_name(__MODULE__)
-    send(pid, {eve, mod, timer, reply_eve})
-  end
-  
-  def set_cb(lists, mod, eve, timer, reply_eve) do
+  defp set_cb(lists, mod, eve, timer, reteve) do
+    timer = div(timer, get_tick()) 
     case eve do
-      :oneshot  -> update_or_append(lists, [mod, reply_eve, timer, 0])
-      :cyclic   -> update_or_append(lists, [mod, reply_eve, timer, timer])
-      :cancel   -> cancel(lists, mod, reply_eve)
+      :oneshot  -> update_or_append(lists, [mod, reteve, timer, 0])
+      :cyclic   -> update_or_append(lists, [mod, reteve, timer, timer])
+      :cancel   -> cancel(lists, mod)
       _     -> lists 
     end
   end
   
-  def update_or_append(lists, [mod, _reply_eve, _a, _b] = new_item) do
+  defp update_or_append(lists, [mod, _reteve, _a, _b] = new_item) do
     if Enum.any?(lists, fn [key, _pre_eve, _, _] -> key == mod end) do
       # 置き換え
       Enum.map(lists, fn
-        [^mod, _reply_eve, _, _] -> new_item
+        [^mod, _reteve, _, _] -> new_item
         other -> other
       end)
     else
@@ -84,21 +117,15 @@ defmodule TimerMng do
     end
   end
       
-  def cancel(lists, mod, reply_eve) do
+  defp cancel(lists, mod) do
     Enum.reject(lists, fn
-        [^mod, ^reply_eve, _, _] -> true
+        [^mod, _, _, _] -> true
         _ -> false
     end)
   end
 
-  def get_tick() do
-    @default_tick
+  defp put_lists(lists) do
+    MemPool.put_mpfelm(get_key(), {@elmno_lists, lists})
   end
 
-  def get_systime() do
-    System.os_time(:millisecond)
-  end
-  def timestamp(sta_time) do
-    System.os_time(:millisecond) - sta_time
-  end
 end

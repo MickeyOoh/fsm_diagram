@@ -8,9 +8,10 @@ defmodule FsmDiagramTest do
   end
 
   setup_all do
-    {:ok, pid} = test_mod().start_link()
+    {:ok, pid} = test_mod().start_link(1)
     Process.sleep(10)  # wait till FsmSample activate
-    assert :global.whereis_name(test_mod()) == pid
+    name = test_mod()
+    assert :global.whereis_name(name) == pid
     {:ok, pid: pid}
 
     on_exit(fn -> close() end)
@@ -30,7 +31,7 @@ defmodule FsmDiagramTest do
   end
   test "check state transfer" do
     mod = test_mod()
-    assert(:init == FSM.get_elm(mod, :func) )
+    assert(:start == FSM.get_elm(mod, :func) )
     notify(mod, :go_sts1, "sts1")
     Process.sleep(3)
     assert(:state_1 == FSM.get_elm(mod, :func) )
