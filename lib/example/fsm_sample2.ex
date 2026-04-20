@@ -12,16 +12,9 @@ defmodule FsmSample2 do
   }
   @var_table [{:var1, nil}, {:var2, nil}, {:var3, nil}]
 
-  def child_spec(opts) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]}
-    }
-  end
-
   @spec start_link(any()) :: {:ok, pid}
-  def start_link(_arg \\ 0) do
-    {:ok, pid} = start(__MODULE__, :init, [0])
+  def start_link(argv \\ []) do
+    {:ok, pid} = Task.start_link(fn -> start(__MODULE__, :init, argv) end)
     :global.register_name(__MODULE__, pid) 
     {:ok, pid}
   end
@@ -36,21 +29,23 @@ defmodule FsmSample2 do
   end
 
   # State Machine functions
+
+  @doc false
   @spec init(list()) :: none()
   def init(argv) do
-    var_start(__MODULE__)
     Enum.each(@var_table, 
                 fn m -> {name, var} = m 
                         set_var(__MODULE__, name, var)
               end)
     true = moveto(:start, argv)
   end
-
+  
+  @doc false
   def start(argv) do
     set_var(__MODULE__, :var1, "start")
     _start(argv)
   end
-  def _start(argv) do
+  defp _start(argv) do
     {eve, _from, _msg} = 
       receive do
         {_, _, _} = msg -> msg
@@ -62,7 +57,8 @@ defmodule FsmSample2 do
       _ -> _start(argv)
     end
   end
-
+  
+  @doc false
   def state_1(argv) do
     {eve, _from, _msg} = 
       receive do
@@ -79,7 +75,7 @@ defmodule FsmSample2 do
 
     _state_2(argv)
   end
-  def _state_2(argv) do
+  defp _state_2(argv) do
     {eve, _from, _msg} = 
       receive do
         {_, _, _} = msg -> msg
@@ -91,6 +87,7 @@ defmodule FsmSample2 do
     end
   end
 
+  @doc false
   def state_3(argv) do
     _state_3(argv)
   end

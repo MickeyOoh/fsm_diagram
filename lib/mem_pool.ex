@@ -4,7 +4,6 @@ defmodule MemPool do
 
   """
   use Task
-  
 
   @tblname :mempool # table name for :ets
 

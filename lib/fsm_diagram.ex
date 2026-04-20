@@ -7,7 +7,8 @@ defmodule FsmDiagram do
     var_valid = Keyword.get(opts, :var_valid, false)
     quote do
       import FsmDiagram.Manager
-       
+      require Logger
+
       if unquote(var_valid) do
 
         def var_start(mod) do
@@ -20,6 +21,41 @@ defmodule FsmDiagram do
         defdelegate remove_var(mod), to: FsmDiagram
       end
 
+      def child_spec(opts) do
+       %{ id: __MODULE__, start: {__MODULE__, :start_link, [opts]}}
+      end
+
+      @spec fsm_start(module(), fun(), list()) :: {:ok, pid()}
+      def fsm_start(mod, fnc, argv) do
+        {:ok, pid} = Task.start_link(fn -> start(mod, fnc, argv) end)
+        :global.register_name(__MODULE__, pid) 
+        {:ok, pid}
+      end
+       
+      if unquote(var_valid) do
+        @spec start(module(), fun(), list()) :: none()
+         defp start(mod, func, argv) do
+           MemPool.cre_mpf({{mod, :fsm}, func, argv, 0})
+           var_start(mod)
+           dispatch(mod)
+         end
+      else
+        @spec start(module(), fun(), list()) :: none()
+        defp start(mod, func, argv) do
+          MemPool.cre_mpf({{mod, :fsm}, func, argv, 0})
+          dispatch(mod)
+        end
+      end
+
+      @spec dispatch(module()) :: none() 
+      defp dispatch(mod) do
+        key = {mod, :fsm}
+        record = MemPool.get_mpf(key)
+        {^key, func, argv, _time} = record
+        Logger.debug("#{mod}: #{Atom.to_string(func)}(#{inspect argv})")
+        apply(mod, func, [argv])
+        dispatch(mod)
+      end
     end
 
   end
