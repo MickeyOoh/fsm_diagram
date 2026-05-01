@@ -9,13 +9,13 @@ defmodule MemPool do
 
   @spec start_link(any()) :: {:ok, pid()}
   def start_link(_argv) do
+    :ets.new(@tblname, [:named_table, :public, :set])
     Task.start_link(fn -> init() end)
   end
   
   @spec init() :: none()
   defp init() do
     :global.register_name(__MODULE__, self())
-    :ets.new(@tblname, [:named_table, :public, :set])
     manager()
   end
 
@@ -30,8 +30,8 @@ defmodule MemPool do
 
   @spec get_reply(pid(), any()) :: any()
   defp get_reply(from, key) do
-    {_key, func, argv, time} = get_mpf(key)
-    data = {key, func, argv, time}
+    {^key, func, argv, vars} = get_mpf(key)
+    data = {key, func, argv, vars}
     send(from, {:get, data})
   end
 

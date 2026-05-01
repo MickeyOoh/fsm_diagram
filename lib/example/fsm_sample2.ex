@@ -10,19 +10,18 @@ defmodule FsmSample2 do
     state_4: "state_4",
     state_5: "state_5",
   }
-  @var_table [{:var1, nil}, {:var2, nil}, {:var3, nil}]
 
-  @spec start_link(any()) :: {:ok, pid}
-  def start_link(argv \\ []) do
-    {:ok, pid} = Task.start_link(fn -> start(__MODULE__, :init, argv) end)
-    :global.register_name(__MODULE__, pid) 
-    {:ok, pid}
+  @spec start_link(fsm_id()) :: {:ok, pid}
+  def start_link(fsm_id \\ __MODULE__) do
+    #{:ok, pid} = Task.start_link(fn -> start(__MODULE__, :init, argv) end)
+    {:ok, _pid} = fsm_start(fsm_id, :init, []) 
   end
 
   @spec moveto(fun(), list()) :: true | false
   defp moveto(func, argv) do
     if func in Map.keys(@state_table) do
-      update_fnc(__MODULE__, func, argv)
+      func = Function.capture(__MODULE__, func, 1)
+      update_fnc(func, argv)
     else
       :false
     end
@@ -33,16 +32,11 @@ defmodule FsmSample2 do
   @doc false
   @spec init(list()) :: none()
   def init(argv) do
-    Enum.each(@var_table, 
-                fn m -> {name, var} = m 
-                        set_var(__MODULE__, name, var)
-              end)
     true = moveto(:start, argv)
   end
   
   @doc false
   def start(argv) do
-    set_var(__MODULE__, :var1, "start")
     _start(argv)
   end
   defp _start(argv) do

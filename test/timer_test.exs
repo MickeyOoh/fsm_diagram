@@ -25,21 +25,22 @@ defmodule TimerMngTest do
 
   test "check timer module" do
     spawn(fn -> timer_2() end)
-    :global.register_name(TestTimer, self())
+    #:global.register_name(TestTimer, self())
     time = 100
     eve  = :tim
-    TimerMng.set_timcb(:oneshot, TestTimer, time, eve)
+    TimerMng.set_timcb(:oneshot, self(), time, eve)
     sta = TimerMng.get_systime()
     rec_check(eve, time + 100)
     leap = TimerMng.timestamp(sta)
     IO.puts("0: #{eve} :leap(#{time}ms) -> #{leap}ms")
 
-    TimerMng.set_timcb(:oneshot, TestTimer, time, eve)
+    TimerMng.set_timcb(:oneshot, self(), time, eve)
     assert rec_check(:tim, time - 5) == false
     # check :cyclic 
     time = 200
     eve  = :cyc
-    TimerMng.set_timcb(:cyclic, TestTimer, time, eve)
+    TimerMng.set_timcb(:cyclic, self(), time, eve)
+    
     sta = TimerMng.get_systime()
     rec_check(eve, time + 100)
     leap = TimerMng.timestamp(sta)
@@ -55,7 +56,7 @@ defmodule TimerMngTest do
     leap = TimerMng.timestamp(sta)
     IO.puts("3: #{eve} :leap(#{time}ms) -> #{leap}ms")
     #
-    TimerMng.set_timcb(:cancel, TestTimer, 0, eve)
+    TimerMng.set_timcb(:cancel, self(), 0, eve)
   end
 
   defp rec_check(event, timeout) do

@@ -12,6 +12,7 @@ defmodule FsmDiagram.Application do
       # {FsmDiagram.Worker, arg}
       {MemPool, []},
       {TimerMng, 10},
+      {FsmDiagram.Manager, []},
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

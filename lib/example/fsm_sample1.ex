@@ -1,8 +1,9 @@
 defmodule FsmSample1 do
   use FsmDiagram
 
-  def start_link(_arg \\ 0) do
-    start(__MODULE__, :init, [0])  # (mod, func, arg)
+  def start_link(fsm_id \\ __MODULE__) do
+    #start(__MODULE__, :init, [0])  # (mod, func, arg)
+    {:ok, _pid} = fsm_start(fsm_id, :init, [])
   end
   def init(argv) do
     moveto(:ledoff, argv)
@@ -39,9 +40,9 @@ defmodule FsmSample1 do
   end
   def flicker(argv) do
     time = div(250, TimerMng.get_tick())
-    TimerMng.set_timcb(:cyclic, __MODULE__, time,:tim)
+    TimerMng.set_timcb(:cyclic, self(), time,:tim)
     flicker_loop(argv)
-    TimerMng.set_timcb(:cancel, __MODULE__, 0, :tim)
+    TimerMng.set_timcb(:cancel, self(), 0, :tim)
   end
   def flicker_loop(argv) do
     {eve, _from, _msg} = 
@@ -63,6 +64,7 @@ defmodule FsmSample1 do
   defp arg_on_off(_argv), do: [:off]
 
   defp moveto(func, argv) do
-    update_fnc(__MODULE__, func, argv)
+    func = Function.capture(__MODULE__, func, 1)
+    update_fnc(func, argv)
   end
 end
