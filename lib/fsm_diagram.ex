@@ -22,7 +22,7 @@ defmodule FsmDiagram do
         {:ok, _pid} = Task.start_link(fn -> fsm_init(fsm_id, fnc, argv) end)
       end
        
-      @spec fsm_init(fsm_id(), fun(), list()) :: none()
+      @spec fsm_init(fsm_id(), fun(), any()) :: none()
       defp fsm_init(fsm_id, func, argv) do
         # register fsm_id and make set funcs of fsm into :ets
         Registry.register_name({FsmDiagram.Registry, fsm_id}, self())
@@ -36,7 +36,7 @@ defmodule FsmDiagram do
         key = {fsm_id, :fsm}
         record = MemPool.get_mpf(key)
         {^key, func, argv, _var} = record
-        Logger.debug("#{fsm_id}: #{inspect func}(#{inspect argv})")
+        Logger.debug("#{inspect fsm_id}: #{inspect func}(#{inspect argv})")
         func.(argv)
         dispatch(fsm_id)
       end
@@ -44,4 +44,8 @@ defmodule FsmDiagram do
 
   end
 
+   defdelegate self_fsmid(), to: FsmDiagram.Fsmlib
+   defdelegate get_fsmpid(fsmid), to: FsmDiagram.Fsmlib
+   defdelegate get_fsm(fsmid), to: FsmDiagram.Fsmlib
+   defdelegate fsm_table(), to: FsmDiagram.Fsmlib
 end

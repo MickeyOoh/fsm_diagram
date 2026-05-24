@@ -14,7 +14,8 @@ defmodule FsmDiagram.Fsmlib do
 
   # Public functions
   @doc """
-  
+  get fsm_id from self() through Registry
+
   """
   @spec self_fsmid() :: module() | String.t() | :error
   def self_fsmid() do
@@ -23,6 +24,14 @@ defmodule FsmDiagram.Fsmlib do
       [fsmid | _] -> fsmid 
       [] -> IO.puts(":error") 
         :error
+    end
+  end
+
+  @spec get_fsmpid(any()) :: pid() | nil
+  def get_fsmpid(fsmid) do
+    case Registry.lookup(FsmDiagram.Registry, fsmid) do
+      [{pid, _}] -> pid
+      [] -> nil
     end
   end
 
@@ -39,7 +48,7 @@ defmodule FsmDiagram.Fsmlib do
   @spec put_vars(fun(), list()) :: any() 
   def put_vars(vars) do
     fsm_id = self_fsmid()
-    update_fnc(fsm_id, vars)
+    put_vars(fsm_id, vars)
   end
   def put_vars(fsm_id, vars) do
     key = {fsm_id, :fsm}
