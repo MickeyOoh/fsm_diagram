@@ -23,7 +23,7 @@ defmodule MemPool do
   defp manager() do
     receive do
       {:get, from, key} -> get_reply(from, key)
-      {:put, from, data} -> put_reply(from, data)
+      _ -> nil 
     end
     manager() 
   end
@@ -35,22 +35,19 @@ defmodule MemPool do
     send(from, {:get, data})
   end
 
-  @spec put_reply(pid(), any()) :: any()
-  defp put_reply(from, data) do
-    put_mpf(data)
-    send(from, {:put, data})
-  end
-
   # Public functions
   @doc """
-  create mem  
+  create mem to check if it is new 
   """
-  @spec cre_mpf(Tuple) :: boolean() 
+  @spec cre_mpf(tuple()) :: boolean() 
   def cre_mpf(data) do
     :ets.insert_new(@tblname, data)
   end
-  
-  @spec put_mpf(Tuple) :: boolean() 
+
+  @doc """
+  update data into mem 
+  """
+  @spec put_mpf(tuple()) :: boolean() 
   def put_mpf(data) do
     :ets.insert(@tblname,  data)
   end
@@ -77,12 +74,12 @@ defmodule MemPool do
   @spec get_mpfkeys() :: List
   def get_mpfkeys() do
     :ets.tab2list(@tblname)
-    |> Enum.map( fn tuple -> elem(tuple, 0) end)
+    |> Enum.map(fn tuple -> elem(tuple, 0) end)
   end
   
   @spec delete(any()) :: any()
   def delete(key) do
-    :ets.delete_object(@tblname, key)
+    :ets.delete(@tblname, key)
   end
   
 

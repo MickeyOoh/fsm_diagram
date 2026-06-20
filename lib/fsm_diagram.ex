@@ -4,7 +4,6 @@ defmodule FsmDiagram do
   """
 
   defmacro __using__(_opts) do
-    #var_valid = Keyword.get(opts, :var_valid, false)
     quote do
       import FsmDiagram.Fsmlib 
       require Logger
@@ -14,7 +13,7 @@ defmodule FsmDiagram do
       @spec child_spec(fsm_id()) :: map()
       def child_spec(fsm_id) do
         %{id: __MODULE__, 
-          start: {__MODULE__, :start_link, [fsm_id]},}
+          start: {__MODULE__, :start_link, [fsm_id]} }
       end
 
       @spec fsm_start(fsm_id(), fun(), list()) :: {:ok, pid()}
@@ -43,9 +42,9 @@ defmodule FsmDiagram do
     end
 
   end
-
-   defdelegate self_fsmid(), to: FsmDiagram.Fsmlib
-   defdelegate get_fsmpid(fsmid), to: FsmDiagram.Fsmlib
-   defdelegate get_fsm(fsmid), to: FsmDiagram.Fsmlib
-   defdelegate fsm_table(), to: FsmDiagram.Fsmlib
+  # public functions
+  defdelegate get_fsmpid(fsmid), to: FsmDiagram.Fsmlib
+  defdelegate get_fsm(fsmid), to: FsmDiagram.Fsmlib
+  defdelegate get_elm(fsmid, kind), to: FsmDiagram.Fsmlib
+  defdelegate fsm_table(), to: FsmDiagram.Fsmlib
 end

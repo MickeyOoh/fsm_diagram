@@ -1,63 +1,83 @@
 defmodule FsmDiagramTest do
   use ExUnit.Case
   doctest FsmDiagram
-  alias FsmDiagram.Fsmlib, as: FSM
-
-  defp test_examples do
-    [{FsmSample2, "i2c-1"}]
-  end
-  def getReg() do
-    FsmDiagram.Registry 
-  end
+  alias FsmDiagram, as: FSM
 
   setup_all do
-    [{mod, name} | _] = test_examples()
-    {:ok, pid} = mod.start_link(name)
-    Process.sleep(10)  # wait till FsmSample activate
-    reg_pid = Registry.whereis_name({getReg(), name})
+    name = "LED1"
+    {:ok, pid} = FsmSample1.start_link(name)
+    rec_check(:initialized, 100)
+    reg_pid = Registry.whereis_name({FsmDiagram.Registry, name})
     assert reg_pid == pid
-    {:ok, pid: pid}
-
-    #on_exit(fn -> close() end)
+    fsm_list = FSM.fsm_table()
+    assert(name in fsm_list)
+    
+    name = "LED2"
+    {:ok, pid} = FsmSample1.start_link(name)
+    rec_check(:initialized, 100)
+    reg_pid = Registry.whereis_name({FsmDiagram.Registry, name})
+    assert reg_pid == pid
+    fsm_list = FSM.fsm_table()
+    assert(name in fsm_list)
+    # get lists
+    pid = FsmDiagram.get_fsmpid("fsm_manager") 
+    send(pid, {:get_all, self(), "get all keys"})
+    keys = receive do
+      {:reply, _from, keys} -> keys 
+      after 100 -> []
+    end
+    assert( "LED1" in keys)
+    assert( "LED2" in keys)
+    {:ok, names: ["LED1", "LED2"]}
   end
-  #defp close() do
-  #  {mod, name} = test_mod()
-  #  pid = Registry.whereis_name({FsmDigram.Registry, name})
-  #  Process.monitor(pid)
-  #  Process.exit(pid, :kill)
-  #  receive do
-  #    {:DOWN, _ref, :process, ^pid, reason} -> 
-  #            IO.puts("FsmSample :Down <-#{reason}")
-  #      :ok
-  #  after
-  #    100 -> :timeout # 必要に応じてタイムアウト設定
-  #  end
-  #  TimerMng.set_timcb(:cancel, test_mod(), 0, :tim)
-  #end
-  test "check state transfer" do
-    [{mod, name} | _] = test_examples()
-    statfunc = Function.capture(mod, :start, 1)
+
+  test "check state transfer no.1" do
+    name = "LED1" 
+    statfunc = Function.capture(FsmSample1, :ledoff, 1)
     assert(statfunc == FSM.get_elm(name, :func) )
     #
-    notify(name, :go_sts1, "sts1")
+    notify(name, :on, "ledon")
     Process.sleep(3)
-    statfunc = Function.capture(mod, :state_1, 1)
+    statfunc = Function.capture(FsmSample1, :ledon, 1)
+    assert(statfunc == FSM.get_elm(name, :func) )
+    
+    notify(name, :off, "ledoff")
+    Process.sleep(3)
+    statfunc = Function.capture(FsmSample1, :ledoff, 1)
+    assert(statfunc == FSM.get_elm(name, :func) )
+  end
+
+  test "check state transfer no.2" do
+    name = "LED2" 
+    statfunc = Function.capture(FsmSample1, :ledoff, 1)
     assert(statfunc == FSM.get_elm(name, :func) )
     #
-    notify(name, :go_sts2, "sts2")
+    {_key, func, _argv, _var} = FSM.get_fsm(name)
+    assert(func == statfunc) 
+
+    notify(name, :on, "ledon")
     Process.sleep(3)
-    statfunc = Function.capture(mod, :state_2, 1)
+    statfunc = Function.capture(FsmSample1, :ledon, 1)
     assert(statfunc == FSM.get_elm(name, :func) )
-    notify(name, :go_sts3, "sts3")
+    
+    notify(name, :off, "ledoff")
     Process.sleep(3)
-    statfunc = Function.capture(mod, :state_3, 1)
+    statfunc = Function.capture(FsmSample1, :ledoff, 1)
     assert(statfunc == FSM.get_elm(name, :func) )
   end
 
   def notify(name, eve, msg) do
-    pid = Registry.whereis_name({getReg(), name})
+    #pid = Registry.whereis_name({FsmDiagram.Registry, name})
+    pid = FSM.get_fsmpid(name)
     send(pid, {eve, self(), msg})
   end
-
+  
+  defp rec_check(event, timeout) do
+    receive do
+      {^event, _from, _msg} -> true
+    after timeout ->
+      false
+    end
+  end
 end
 

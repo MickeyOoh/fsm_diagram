@@ -24,8 +24,10 @@ defmodule TimerMngTest do
   end
 
   test "check timer module" do
+    pid = :global.whereis_name(TimerMng)
+    send(pid, {:none, self(), 100})   # illegal data send
+
     spawn(fn -> timer_2() end)
-    #:global.register_name(TestTimer, self())
     time = 100
     eve  = :tim
     TimerMng.set_timcb(:oneshot, self(), time, eve)
@@ -45,6 +47,12 @@ defmodule TimerMngTest do
     rec_check(eve, time + 100)
     leap = TimerMng.timestamp(sta)
     IO.puts("1: #{eve} :leap(#{time}ms) -> #{leap}ms")
+    # get_lists() |> IO.inspect()
+    lists = TimerMng.get_lists()
+    IO.puts("timer lists = #{inspect lists}")
+    send(pid, {:none, self(), 100})   # illegal data send
+    TimerMng.set_timcb(:none, self(), time, eve)
+    TimerMng.set_timcb(:oneshot, self(), 0, :tim)
     
     sta = TimerMng.get_systime()
     rec_check(eve, time + 100)

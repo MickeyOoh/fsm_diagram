@@ -1,4 +1,7 @@
 defmodule TimerMng do
+  @moduledoc """
+  Timer Manager 
+  """
   use Task
   # mempool: {key, tick, []}
   defstruct [:fsm_id, :kind, :curtimer, :orgtimer]
@@ -10,7 +13,6 @@ defmodule TimerMng do
   @spec start_link(integer()) :: {:ok, pid()}
   def start_link(tick \\ @default_tick) do
     {:ok, _pid} = Task.start_link(fn -> init(tick) end)
-
   end
 
   @spec get_key() :: {String.t(), atom()}
@@ -64,9 +66,7 @@ defmodule TimerMng do
       receive do
         {eve, pid, timer, reteve} ->
                     set_cb(lists, pid, eve, timer, reteve)
-        dat -> IO.puts("TimerMng: received #{inspect dat}") 
-                lists
-
+        _ -> lists
         after tick - 1 -> do_count(lists)
       end
     put_lists(lists) 

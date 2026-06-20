@@ -1,13 +1,13 @@
 defmodule FsmDiagram.Manager do
-
+  @moduledoc """
+  kick off the FsmDiagram and manager the state
+  """
   use Task
-  alias MemPool, as: Mem
 
   require Logger
 
-  def start_link(_argv \\ []) do
+  def start_link(_argv) do
     Registry.start_link(keys: :unique, name: FsmDiagram.Registry)
-    #Registry.start_link(keys: :unique, name: FsmDiagram)
     Logger.info("Starting FsmDiagram.Manager")
     Task.start_link(fn -> fsm_task() end)
   end
@@ -19,9 +19,10 @@ defmodule FsmDiagram.Manager do
   def fsm_loop() do
     receive do
       {:get_all, from, _argv} ->
-        keys = Mem.get_mpfkeys()
-               |> Enum.filter( fn {_basekey, sort} -> sort == :fsm end)
-        send(from, {:reply, keys})
+        keys = FsmDiagram.fsm_table()
+          #keys = Mem.get_mpfkeys()
+        #     |> Enum.filter(fn {_basekey, sort} -> sort == :fsm end)
+        send(from, {:reply, self(), keys})
       msg -> Logger.info("Manager receive #{inspect msg}")  
     end
     fsm_loop()
