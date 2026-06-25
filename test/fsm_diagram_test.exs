@@ -26,8 +26,8 @@ defmodule FsmDiagramTest do
       {:reply, _from, keys} -> keys 
       after 100 -> []
     end
-    assert( "LED1" in keys)
-    assert( "LED2" in keys)
+    assert("LED1" in keys)
+    assert("LED2" in keys)
     {:ok, names: ["LED1", "LED2"]}
   end
 

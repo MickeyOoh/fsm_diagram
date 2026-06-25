@@ -10,7 +10,7 @@ defmodule MemVariablesTest do
     assert(MemPool.get_mpf(@fsm_id) == nil)
     Vars.create_var(@fsm_id)
     {_, data} = MemPool.get_mpf({@fsm_id, :var}) 
-    assert( data == %{})
+    assert(data == [])
     {:ok, fsm_id: @fsm_id}
   end
 

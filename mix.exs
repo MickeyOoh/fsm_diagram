@@ -66,9 +66,20 @@ defmodule FsmDiagram.MixProject do
       extras: [
         "README.md",
         "CHANGELOG.md",
-      ]
+      ],
+      before_closing_body_tag: &before_closing_body_tag/1
     ]
   end
+  defp before_closing_body_tag(:html) do
+  """
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true });
+  </script>
+  """
+  end
+
+  defp before_closing_body_tag(_), do: ""
 
   defp package() do
     [
