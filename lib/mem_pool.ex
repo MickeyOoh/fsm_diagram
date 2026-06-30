@@ -13,13 +13,12 @@ defmodule MemPool do
     Task.start_link(fn -> init() end)
   end
   
-  @spec init() :: none()
+  #@spec init() :: none()
   defp init() do
     :global.register_name(__MODULE__, self())
     manager()
   end
 
-  @spec manager() :: none()
   defp manager() do
     receive do
       {:get, from, key} -> get_reply(from, key)
@@ -52,12 +51,12 @@ defmodule MemPool do
     :ets.insert(@tblname,  data)
   end
   
-  @spec put_mpfelm(any(), block :: Tuple | List) :: boolean()
+  @spec put_mpfelm(any(), {pos_integer(), any()} | [{pos_integer(), any()}]) :: boolean()
   def put_mpfelm(key, block) do
     :ets.update_element(@tblname, key, block)
   end
 
-  @spec get_mpfelm(any(), integer()) :: tuple()
+  @spec get_mpfelm(any(), integer()) :: any()
   def get_mpfelm(key, pos) do
     :ets.lookup_element(@tblname, key, pos)
   end
@@ -71,7 +70,7 @@ defmodule MemPool do
     end
   end
 
-  @spec get_mpfkeys() :: List
+  @spec get_mpfkeys() :: [any()]
   def get_mpfkeys() do
     :ets.tab2list(@tblname)
     |> Enum.map(fn tuple -> elem(tuple, 0) end)

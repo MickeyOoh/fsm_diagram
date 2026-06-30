@@ -17,7 +17,7 @@ defmodule FsmDiagram.Fsmlib do
   get fsm_id from self() through Registry
 
   """
-  @spec self_fsmid() :: module() | String.t() | :error
+  @spec self_fsmid() :: {:ok, fsm_id()} | {:error, any()}
   def self_fsmid() do
     names = Registry.keys(FsmDiagram.Registry, self())
     case names do 
@@ -50,7 +50,7 @@ defmodule FsmDiagram.Fsmlib do
     e ->
       {:error, Exception.message(e)}
   end
-  @spec update_fnc(any(), fun(), any()) :: none()
+  @spec update_fnc(any(), fun(), any()) :: any()
   def update_fnc(fsm_id, func, argv) do
     key = {fsm_id, :fsm}
     MemPool.put_mpfelm(key, [{@elmno_func, func}, {@elmno_argv, argv}])

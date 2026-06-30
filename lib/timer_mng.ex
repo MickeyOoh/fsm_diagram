@@ -83,7 +83,6 @@ defmodule TimerMng do
                                    [pid, reteve, cyc, cyc]
         [pid, reteve, cnt, cyc] -> [pid, reteve, cnt - 1, cyc]
     end)
-    #|> IO.inspect()
   end
 
   @spec notify(pid(), atom(), any()) :: any()
@@ -101,18 +100,19 @@ defmodule TimerMng do
     end
   end
   
-  defp update_or_append(lists, [pid, _reteve, _a, _b] = new_item) do
-    if Enum.any?(lists, fn [key, _pre_eve, _, _] -> key == pid end) do
-      # 置き換え
+  defp update_or_append(lists, [pid, reteve, timer, _b] = new_item) when timer > 0 do
+    if Enum.any?(lists, fn [key, pre_eve, _, _] -> key == pid and reteve == pre_eve end) do
+      # exchange
       Enum.map(lists, fn
         [^pid, _reteve, _, _] -> new_item
         other -> other
       end)
     else
-      # 追加
+      # append
       [new_item] ++ lists
     end
   end
+  defp update_or_append(lists, _new_item), do: lists
       
   defp cancel(lists, pid) do
     Enum.reject(lists, fn

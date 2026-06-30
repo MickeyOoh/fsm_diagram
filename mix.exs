@@ -70,6 +70,7 @@ defmodule FsmDiagram.MixProject do
       before_closing_body_tag: &before_closing_body_tag/1
     ]
   end
+
   defp before_closing_body_tag(:html) do
   """
   <script type="module">
@@ -78,7 +79,6 @@ defmodule FsmDiagram.MixProject do
   </script>
   """
   end
-
   defp before_closing_body_tag(_), do: ""
 
   defp package() do
