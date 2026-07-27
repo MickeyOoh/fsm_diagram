@@ -20,30 +20,13 @@ defmodule TimerMng do
 
   defp init(tick) do
     :global.register_name(__MODULE__, self())
-    Process.register(self(), :timermng)
     MemPool.cre_mpf({get_key(), tick, []})
     countdown(tick, [])
   end
 
-  # Public function
-  @spec set_timcb(atom(), pid(), integer(), atom()) :: any()
-  def set_timcb(eve, pid, timer, reteve) do
-    send(:timermng, {eve, pid, timer, reteve})
-  end
-  
   @spec get_tick() :: integer()
   def get_tick() do
     MemPool.get_mpfelm(get_key(), @elmno_tick)
-  end
-  
-  @spec get_systime() :: integer()
-  def get_systime() do
-    System.os_time(:millisecond)
-  end
-
-  @spec timestamp(integer()) :: integer()
-  def timestamp(sta_time) do
-    System.os_time(:millisecond) - sta_time
   end
   
   @spec get_lists() :: list()

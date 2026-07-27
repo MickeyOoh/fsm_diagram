@@ -18,6 +18,10 @@ defmodule FsmDiagram do
 
       @spec fsm_start(fsm_id(), fun(), list()) :: {:ok, pid()}
       def fsm_start(fsm_id, fnc, argv) do
+        {:ok, _pid} = Task.start(fn -> fsm_init(fsm_id, fnc, argv) end)
+      end
+      @spec fsm_start_link(fsm_id(), fun(), list()) :: {:ok, pid()}
+      def fsm_start_link(fsm_id, fnc, argv) do
         {:ok, _pid} = Task.start_link(fn -> fsm_init(fsm_id, fnc, argv) end)
       end
        

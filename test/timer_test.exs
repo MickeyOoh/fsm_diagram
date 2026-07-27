@@ -3,61 +3,59 @@ defmodule TimerMngTest do
   doctest TimerMng
 
   defp timer_2() do
+    timerpid = :global.whereis_name(TimerMng)
     time = 150
     eve = :tim2
-    TimerMng.set_timcb(:oneshot, self(), time, eve)
-    sta = TimerMng.get_systime()
-    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{TimerMng.timestamp(sta)}ms")
+    send(timerpid, {:oneshot, self(), time, eve})
+    sta = timestamp()
+    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")
     # check :cyclic 
     time = 200
     eve  = :cyc2
-    TimerMng.set_timcb(:cyclic, self(), time, eve)
-    sta = TimerMng.get_systime()
-    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{TimerMng.timestamp(sta)}ms")
+    send(timerpid, {:cyclic, self(), time, eve})
+    sta = timestamp()
+    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")
     
-    TimerMng.set_timcb(:cancel, self(), 0, eve)
-     
+    send(timerpid, {:cancel, self(), time, eve})
   end
 
   test "check timer module" do
     # check ileegal event by sending set timer
-    pid = :global.whereis_name(TimerMng)
-    send(pid, {:none, self(), 100})   # illegal data send
+    timerpid = :global.whereis_name(TimerMng)
+    send(timerpid, {:none, self(), 100})   # illegal data send
     # start timer_2 task to check the multi timer control
     spawn(fn -> timer_2() end)
     # check the timer
     time = 100
     eve  = :tim
-    TimerMng.set_timcb(:oneshot, self(), time, eve)
-    sta = TimerMng.get_systime()
-    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{TimerMng.timestamp(sta)}ms")
 
-    TimerMng.set_timcb(:oneshot, self(), time, eve)
+    send(timerpid, {:oneshot, self(), time, eve})   # illegal data send
+    sta = timestamp()
+    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")
+
+    send(timerpid, {:oneshot, self(), time, eve})   # illegal data send
     assert rec_check(eve, time - 10) == false
     # check :cyclic 
     time = 200
     eve  = :cyc
-    TimerMng.set_timcb(:cyclic, self(), time, eve)
+    send(timerpid, {:cyclic, self(), time, eve})   # illegal data send
     
-    sta = TimerMng.get_systime()
-    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{TimerMng.timestamp(sta)}ms")
+    sta = timestamp()
+    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")
     # check illegal event    
-    send(pid, {:none, self(), 100})   # illegal data send
-    TimerMng.set_timcb(:none, self(), time, eve)
-    # timer 0 check
-    TimerMng.set_timcb(:oneshot, self(), 0, :tim)
+    send(timerpid, {:none, self(), 100})   # illegal data send
     #
     Process.sleep(10)
     lists = TimerMng.get_lists()
     IO.puts("timer lists = #{inspect lists}")
     
-    sta = TimerMng.get_systime()
-    assert(rec_check(eve, time + 50), "#{eve}:#{time}ms -> #{TimerMng.timestamp(sta)}ms")
+    sta = timestamp()
+    assert(rec_check(eve, time + 50), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")
     
-    sta = TimerMng.get_systime()
-    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{TimerMng.timestamp(sta)}ms")
+    sta = timestamp()
+    assert(rec_check(eve, time + 10), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")
     #
-    TimerMng.set_timcb(:cancel, self(), 0, eve)
+    send(timerpid, {:cancel, self(), time, eve})
   end
 
   defp rec_check(event, timeout) do
@@ -65,6 +63,10 @@ defmodule TimerMngTest do
       {^event, _from, _msg} -> :true
     after timeout -> :false
     end
+  end
+
+  defp timestamp(sta \\ 0) do
+    System.monotonic_time(:millisecond) - sta
   end
   
 end

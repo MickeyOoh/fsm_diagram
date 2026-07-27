@@ -117,12 +117,7 @@ defmodule FsmDiagram.Fsmlib do
   """
   @spec fsm_table() :: list()
   def fsm_table() do
-    #MemPool.get_mpfkeys()
-    #|> IO.inspect(label: "fsm_table()")
-    #|> Enum.filter( fn tuple -> elem(tuple, 1) == :fsm end)
-    #|> Enum.map( fn tuple -> elem(tuple, 0) end)
     match_spec = [{{{:"$1", :fsm}, :_, :_, :_}, [], [:"$1"]}]
-
     :ets.select(:mempool, match_spec)
     #|> IO.inspect(label: "fsm_table()")
   end
