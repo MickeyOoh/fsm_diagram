@@ -8,18 +8,26 @@ defmodule FsmDiagram do
       import FsmDiagram.Fsmlib 
       require Logger
 
-      @type fsm_id() :: String.t() | module()
+      @type fsm_id() :: String.t() | module() | tuple() 
 
+      @doc false
       @spec child_spec(fsm_id()) :: map()
       def child_spec(fsm_id) do
         %{id: __MODULE__, 
           start: {__MODULE__, :start_link, [fsm_id]} }
       end
 
+      @doc false
       @spec fsm_start(fsm_id(), fun(), list()) :: {:ok, pid()}
       def fsm_start(fsm_id, fnc, argv) do
-        {:ok, _pid} = Task.start(fn -> fsm_init(fsm_id, fnc, argv) end)
+        pid = get_fsmpid(fsm_id)
+        if is_pid(pid) do
+          {:error, pid}
+        else
+          {:ok, _pid} = Task.start(fn -> fsm_init(fsm_id, fnc, argv) end)
+        end
       end
+      @doc false
       @spec fsm_start_link(fsm_id(), fun(), list()) :: {:ok, pid()}
       def fsm_start_link(fsm_id, fnc, argv) do
         {:ok, _pid} = Task.start_link(fn -> fsm_init(fsm_id, fnc, argv) end)
@@ -31,17 +39,17 @@ defmodule FsmDiagram do
         Registry.register_name({FsmDiagram.Registry, fsm_id}, self())
         func = Function.capture(__MODULE__, func, 1)
         MemPool.cre_mpf({{fsm_id, :fsm}, func, argv, 0})
-        dispatch(fsm_id)
+        fsm_dispatch(fsm_id)
       end
 
-      @spec dispatch(fsm_id()) :: none() 
-      defp dispatch(fsm_id) do
+      @spec fsm_dispatch(fsm_id()) :: none() 
+      defp fsm_dispatch(fsm_id) do
         key = {fsm_id, :fsm}
         record = MemPool.get_mpf(key)
         {^key, func, argv, _var} = record
-        Logger.debug("#{inspect fsm_id}: #{inspect func}(#{inspect argv})")
+        #Logger.debug("#{inspect fsm_id}: #{inspect func}(#{inspect argv})", fsm_diagram: true)
         func.(argv)
-        dispatch(fsm_id)
+        fsm_dispatch(fsm_id)
       end
     end
 

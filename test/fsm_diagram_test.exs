@@ -5,7 +5,7 @@ defmodule FsmDiagramTest do
 
   setup_all do
     name = "LED1"
-    {:ok, pid} = FsmSample1.start_link(name)
+    {:ok, pid} = FsmSample1.start(name)
     rec_check(:initialized, 100)
     reg_pid = Registry.whereis_name({FsmDiagram.Registry, name})
     assert reg_pid == pid
@@ -13,22 +13,38 @@ defmodule FsmDiagramTest do
     assert(name in fsm_list)
     
     name = "LED2"
-    {:ok, pid} = FsmSample1.start_link(name)
+    {:ok, pid} = FsmSample1.start(name)
     rec_check(:initialized, 100)
     reg_pid = Registry.whereis_name({FsmDiagram.Registry, name})
     assert reg_pid == pid
     fsm_list = FSM.fsm_table()
     assert(name in fsm_list)
     # get lists
-    pid = FsmDiagram.get_fsmpid("fsm_manager") 
-    send(pid, {:get_all, self(), "get all keys"})
+    pid = Registry.whereis_name({FsmDiagram.Registry, "fsm_manager"})
+    send(pid, {:get_all, self(), :msg, "get all keys"})
     keys = receive do
-      {:reply, _from, keys} -> keys 
+      {:reply, _from, keys, _} -> keys 
       after 100 -> []
     end
     assert("LED1" in keys)
     assert("LED2" in keys)
     {:ok, names: ["LED1", "LED2"]}
+    on_exit(fn ->
+      ending( FSM.get_fsmpid("LED1") )
+      ending( FSM.get_fsmpid("LED2") )
+    end)
+  end
+
+  defp ending(pid) do
+    if Process.alive?(pid) do
+      ref = Process.monitor(pid)
+      Process.exit(pid, :shutdown)
+      receive do
+        {:DOWN, ^ref, :process, ^pid, _reason} -> :ok
+      after
+        1_000 -> Process.exit(pid, :kill) # タイムアウトしたら強制終了
+      end
+    end
   end
 
   test "check state transfer no.1" do
@@ -67,9 +83,8 @@ defmodule FsmDiagramTest do
   end
 
   def notify(name, eve, msg) do
-    #pid = Registry.whereis_name({FsmDiagram.Registry, name})
-    pid = FSM.get_fsmpid(name)
-    send(pid, {eve, self(), msg})
+    pid = Registry.whereis_name({FsmDiagram.Registry, name})
+    send(pid, {eve, self(), :msg, msg})
   end
   
   defp rec_check(event, timeout) do

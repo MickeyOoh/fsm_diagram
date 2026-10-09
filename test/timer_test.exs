@@ -1,6 +1,7 @@
 defmodule TimerMngTest do
   use ExUnit.Case
   doctest TimerMng
+  require Logger
 
   defp timer_2() do
     timerpid = :global.whereis_name(TimerMng)
@@ -47,7 +48,7 @@ defmodule TimerMngTest do
     #
     Process.sleep(10)
     lists = TimerMng.get_lists()
-    IO.puts("timer lists = #{inspect lists}")
+    Logger.debug("timer lists = #{inspect lists}", fsm_diagram: true)
     
     sta = timestamp()
     assert(rec_check(eve, time + 50), "#{eve}:#{time}ms -> #{timestamp(sta)}ms")

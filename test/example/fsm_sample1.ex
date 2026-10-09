@@ -4,7 +4,7 @@ defmodule FsmSample1 do
   """
   use FsmDiagram
 
-  def start_link(fsm_id \\ __MODULE__) do
+  def start(fsm_id \\ __MODULE__) do
     {:ok, _pid} = fsm_start(fsm_id, :init, self())
   end
 
@@ -20,7 +20,7 @@ defmodule FsmSample1 do
   end
   defp _ledoff(argv) do
     receive do
-      {:on, _from, _msg}  -> moveto(:ledon, [0])
+      {:on, _from, _msg, _arg}  -> moveto(:ledon, [0])
       _ -> _ledoff(argv)
     end
   end
@@ -31,7 +31,7 @@ defmodule FsmSample1 do
   end
   defp _ledon(argv) do
     receive do
-      {:off, _from, _msg} -> moveto(:ledoff, [0])
+      {:off, _from, _msg, _arg} -> moveto(:ledoff, [0])
       _    -> _ledon(argv)
     end
   end

@@ -8,7 +8,7 @@ defmodule ManagerTest do
 
   test "put data into memory test" do
     pid = FsmDiagram.get_fsmpid("fsm_manager") 
-    send(pid, {:get_all, self(), "get all keys"})
+    send(pid, {:get_all, self(), :msg, "get all keys"})
     receive do
       {:reply, _from, keys} -> keys 
       after 100 -> []

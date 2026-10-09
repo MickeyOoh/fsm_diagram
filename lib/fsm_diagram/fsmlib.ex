@@ -17,23 +17,22 @@ defmodule FsmDiagram.Fsmlib do
   get fsm_id from self() through Registry
 
   """
-  @spec self_fsmid() :: {:ok, fsm_id()} | {:error, any()}
+  @spec self_fsmid() :: fsm_id() | nil 
   def self_fsmid() do
-    names = Registry.keys(FsmDiagram.Registry, self())
-    case names do 
-      [fsmid | _] -> {:ok, fsmid}
-      [] -> {:error, "not found pid"}
-    end
+    Registry.keys(FsmDiagram.Registry, self())
+    |> List.first( )
   end
   @doc """
   get pid of fsm process from fsm_id through Registry
   fsmid: module or name of starting process
   """
-  @spec get_fsmpid(any()) :: pid() | nil
-  def get_fsmpid(fsmid) do
-    case Registry.lookup(FsmDiagram.Registry, fsmid) do
-      [{pid, _}] -> pid
-      [] -> nil
+  @spec get_fsmpid(fsm_id()) :: pid() | nil
+  def get_fsmpid(fsm_id) do
+    result = Registry.lookup(FsmDiagram.Registry, fsm_id) 
+             |> List.first( )
+    case result do
+      {pid, _value} -> pid
+      _ -> result
     end
   end
   @doc """
@@ -44,14 +43,7 @@ defmodule FsmDiagram.Fsmlib do
   """
   @spec update_fnc(fun(), any()) :: any() 
   def update_fnc(func, argv) do
-    {:ok, fsm_id} = self_fsmid()
-    update_fnc(fsm_id, func, argv)
-  rescue
-    e ->
-      {:error, Exception.message(e)}
-  end
-  @spec update_fnc(any(), fun(), any()) :: any()
-  def update_fnc(fsm_id, func, argv) do
+    fsm_id = self_fsmid()
     key = {fsm_id, :fsm}
     MemPool.put_mpfelm(key, [{@elmno_func, func}, {@elmno_argv, argv}])
   end 
@@ -62,13 +54,7 @@ defmodule FsmDiagram.Fsmlib do
   """
   @spec put_vars(any()) :: none() 
   def put_vars(vars) do
-    {:ok, fsm_id} = self_fsmid()
-    put_vars(fsm_id, vars)
-  rescue
-    e ->
-      {:error, Exception.message(e)}
-  end
-  def put_vars(fsm_id, vars) do
+    fsm_id = self_fsmid()
     key = {fsm_id, :fsm}
     MemPool.put_mpfelm(key, {@elmno_vars, vars})
   end 
@@ -77,11 +63,8 @@ defmodule FsmDiagram.Fsmlib do
   """
   @spec get_fsm() :: tuple() | nil
   def get_fsm() do
-    {:ok, fsm_id} = self_fsmid()
+    fsm_id = self_fsmid()
     get_fsm(fsm_id)
-  rescue
-    e ->
-      {:error, Exception.message(e)}
   end
   def get_fsm(fsm_id) do
     key = {fsm_id, :fsm}
@@ -96,11 +79,12 @@ defmodule FsmDiagram.Fsmlib do
   """
   @spec get_elm(atom()) :: term()
   def get_elm(kind) do
-    {:ok, fsm_id} = self_fsmid()
-    get_elm(fsm_id, kind)
-  rescue
-    e ->
-      {:error, Exception.message(e)}
+    fsm_id = self_fsmid()
+    if fsm_id != nil do
+      get_elm(fsm_id, kind)
+    else
+      nil
+    end
   end
   def get_elm(fsm_id, kind) do 
     key = {fsm_id, :fsm}
@@ -108,7 +92,7 @@ defmodule FsmDiagram.Fsmlib do
       :func -> MemPool.get_mpfelm(key, @elmno_func)
       :argv -> MemPool.get_mpfelm(key, @elmno_argv)
       :vars -> MemPool.get_mpfelm(key, @elmno_vars)
-      _ -> false
+      _ -> nil
     end
   end
 

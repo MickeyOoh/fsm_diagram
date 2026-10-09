@@ -6,25 +6,12 @@ defmodule Fsmdiagram.FsmlibTest do
   @test_fsm "Fsmlib"
 
   test "check if get fsmid from self()" do
-    {result, _msg} =  Fsmlib.self_fsmid()
-    assert(result == :error)
-
-    {:ok, _pid} = Sample.start_link(@test_fsm)
+    {:ok, _pid} = Sample.start(@test_fsm)
     rec_check(:initialized, 1000)
     # update_fnc()
-    {result, _msg} = Fsmlib.update_fnc(:init, self())
-    assert(result == :error)
-    {result, _msg} = Fsmlib.get_fsm()
-    assert(result == :error)
-    {result, _msg} = Fsmlib.put_vars(123)
-    assert(result == :error)
-    {result, _msg} = Fsmlib.get_fsm()
-    assert(result == :error)
-    {result, _msg} = Fsmlib.get_elm(:func)
-    assert(result == :error)
-    {result, _msg} = Fsmlib.get_elm(:argv)
-    assert(result == :error)
-
+    assert(Fsmlib.get_fsm() == nil)
+    assert(Fsmlib.get_elm(:func) == nil)
+    assert(Fsmlib.get_elm(:argv) == nil)
     rec_check(:end, 1000)
   end
 
@@ -45,14 +32,14 @@ defmodule Sample do
 
   @test_fsm "Fsmlib"
   
-  def start_link(fsm_id \\ __MODULE__) do
+  def start(fsm_id \\ __MODULE__) do
     {:ok, _pid} = fsm_start(fsm_id, :init, self())
   end
   def init(pid) do
     # initialize process
     send(pid, {:initialized, self(), "finishied init()"})
     assert(@test_fsm in fsm_table()) 
-    assert(self_fsmid() == {:ok, @test_fsm})
+    assert(self_fsmid() == @test_fsm)
     fsmpid = get_fsmpid(@test_fsm)
     assert(fsmpid == self())
     assert(get_fsmpid("test1") == nil)
@@ -70,7 +57,7 @@ defmodule Sample do
     assert(vars == "put_vars")
     assert(get_elm(:func) == my_func)
     assert(get_elm(:argv) == pid)
-    assert(get_elm(:test1) == false)
+    assert(get_elm(:test1) == nil)
     send(pid, {:end, self(), "end"})
     state_1(pid)
   end

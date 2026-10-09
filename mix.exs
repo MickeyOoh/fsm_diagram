@@ -2,7 +2,7 @@ defmodule FsmDiagram.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/MickeyOoh/fsm_diagram"
+  @source_url "https://github.com/mickeyooh/fsm_diagram"
 
   def project do
     [
